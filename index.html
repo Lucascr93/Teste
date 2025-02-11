@@ -15,6 +15,7 @@
     <script>
         let mediaRecorder;
         let recordedChunks = [];
+        const maxBufferSize = 30; // Buffer de 30 segundos
 
         function iniciarGravacao() {
             navigator.mediaDevices.getUserMedia({
@@ -28,10 +29,10 @@
 
                 mediaRecorder.ondataavailable = event => {
                     recordedChunks.push(event.data);
-                    if (recordedChunks.length > 30) recordedChunks.shift(); // Mantém buffer de 30s
+                    if (recordedChunks.length > maxBufferSize) recordedChunks.shift(); // Mantém os últimos 30 segundos
                 };
 
-                mediaRecorder.start(1000); // Grava pedaços de 1s
+                mediaRecorder.start(1000); // Grava em segmentos de 1 segundo
             })
             .catch(error => {
                 console.error("Erro ao acessar a câmera:", error);
@@ -39,22 +40,19 @@
         }
 
         function gravar() {
-            mediaRecorder.stop(); // Para a gravação atual
+            // Cria um blob apenas com os últimos 30 segundos gravados
+            const blob = new Blob(recordedChunks, { type: "video/webm" });
+            const url = URL.createObjectURL(blob);
+            document.getElementById("videoPlayer").src = url;
 
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(recordedChunks, { type: "video/webm" });
-                const url = URL.createObjectURL(blob);
-                document.getElementById("videoPlayer").src = url;
-                
-                // Limpa o buffer para nova gravação
-                recordedChunks = [];
-
-                // Reinicia a gravação automaticamente
-                iniciarGravacao();
-            };
+            // Opcional: Baixar o vídeo automaticamente
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = "video_30s.webm";
+            link.click();
         }
 
-        // Inicia a gravação ao carregar a página
+        // Inicia a gravação contínua ao carregar a página
         iniciarGravacao();
     </script>
 </body>

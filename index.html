@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gravar Últimos 30 Segundos</title>
+</head>
+<body>
+    <h1>Capturar Últimos 30 Segundos</h1>
+
+    <video id="camera" autoplay playsinline></video>
+    <button onclick="gravar()">Gravar Últimos 30s</button>
+    <video id="videoPlayer" controls></video>
+
+    <script>
+        let mediaRecorder;
+        let recordedChunks = [];
+
+        // Captura a câmera do celular
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            .then(stream => {
+                document.getElementById("camera").srcObject = stream;
+
+                mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+
+                mediaRecorder.ondataavailable = event => {
+                    recordedChunks.push(event.data);
+                    if (recordedChunks.length > 30) recordedChunks.shift(); // Mantém apenas 30 segundos
+                };
+
+                mediaRecorder.start(1000); // Grava pedaços de 1 segundo
+            });
+
+        function gravar() {
+            const blob = new Blob(recordedChunks, { type: "video/webm" });
+            const url = URL.createObjectURL(blob);
+            document.getElementById("videoPlayer").src = url;
+        }
+    </script>
+
+<button onclick="baixar()">Baixar Vídeo</button>
+
+<script>
+    function baixar() {
+        const blob = new Blob(recordedChunks, { type: "video/webm" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "video.webm";
+        link.click();
+    }
+</script>
+
+
+</body>
+</html>

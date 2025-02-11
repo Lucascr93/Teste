@@ -16,20 +16,26 @@
         let mediaRecorder;
         let recordedChunks = [];
 
-        // Captura a câmera do celular
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-            .then(stream => {
-                document.getElementById("camera").srcObject = stream;
+        // Configurar a câmera traseira
+        navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { exact: "environment" } }, // Força a câmera traseira
+            audio: true
+        })
+        .then(stream => {
+            document.getElementById("camera").srcObject = stream;
 
-                mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+            mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
 
-                mediaRecorder.ondataavailable = event => {
-                    recordedChunks.push(event.data);
-                    if (recordedChunks.length > 30) recordedChunks.shift(); // Mantém apenas 30 segundos
-                };
+            mediaRecorder.ondataavailable = event => {
+                recordedChunks.push(event.data);
+                if (recordedChunks.length > 30) recordedChunks.shift(); // Mantém apenas 30 segundos
+            };
 
-                mediaRecorder.start(1000); // Grava pedaços de 1 segundo
-            });
+            mediaRecorder.start(1000); // Grava pedaços de 1 segundo
+        })
+        .catch(error => {
+            console.error("Erro ao acessar a câmera:", error);
+        });
 
         function gravar() {
             const blob = new Blob(recordedChunks, { type: "video/webm" });

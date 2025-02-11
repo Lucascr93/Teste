@@ -16,46 +16,46 @@
         let mediaRecorder;
         let recordedChunks = [];
 
-        // Configurar a câmera traseira
-        navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { exact: "environment" } }, // Força a câmera traseira
-            audio: true
-        })
-        .then(stream => {
-            document.getElementById("camera").srcObject = stream;
+        function iniciarGravacao() {
+            navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { exact: "environment" } }, // Usa a câmera traseira
+                audio: true
+            })
+            .then(stream => {
+                document.getElementById("camera").srcObject = stream;
 
-            mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+                mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
 
-            mediaRecorder.ondataavailable = event => {
-                recordedChunks.push(event.data);
-                if (recordedChunks.length > 30) recordedChunks.shift(); // Mantém apenas 30 segundos
-            };
+                mediaRecorder.ondataavailable = event => {
+                    recordedChunks.push(event.data);
+                    if (recordedChunks.length > 30) recordedChunks.shift(); // Mantém buffer de 30s
+                };
 
-            mediaRecorder.start(1000); // Grava pedaços de 1 segundo
-        })
-        .catch(error => {
-            console.error("Erro ao acessar a câmera:", error);
-        });
+                mediaRecorder.start(1000); // Grava pedaços de 1s
+            })
+            .catch(error => {
+                console.error("Erro ao acessar a câmera:", error);
+            });
+        }
 
         function gravar() {
-            const blob = new Blob(recordedChunks, { type: "video/webm" });
-            const url = URL.createObjectURL(blob);
-            document.getElementById("videoPlayer").src = url;
+            mediaRecorder.stop(); // Para a gravação atual
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: "video/webm" });
+                const url = URL.createObjectURL(blob);
+                document.getElementById("videoPlayer").src = url;
+                
+                // Limpa o buffer para nova gravação
+                recordedChunks = [];
+
+                // Reinicia a gravação automaticamente
+                iniciarGravacao();
+            };
         }
+
+        // Inicia a gravação ao carregar a página
+        iniciarGravacao();
     </script>
-
-<button onclick="baixar()">Baixar Vídeo</button>
-
-<script>
-    function baixar() {
-        const blob = new Blob(recordedChunks, { type: "video/webm" });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = "video.webm";
-        link.click();
-    }
-</script>
-
-
 </body>
 </html>

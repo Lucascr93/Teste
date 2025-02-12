@@ -56,8 +56,8 @@
         }
 
         function gravar() {
-            if (recordedChunks.length >= maxDuration) {
-                // Quando o botão é pressionado, recorta os últimos 30 segundos
+            // Verifica se temos pelo menos 30 segundos de gravação
+            if (recordedChunks.length >= 30) {
                 console.log("Capturando últimos 30 segundos...");
 
                 // Seleciona os últimos 30 segundos gravados
@@ -74,6 +74,7 @@
                 link.click();
             } else {
                 console.log("Ainda não há 30 segundos gravados suficientes.");
+                alert("Ainda não há 30 segundos gravados. Aguarde mais alguns segundos.");
             }
         }
 

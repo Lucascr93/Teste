@@ -6,9 +6,9 @@
     <title>Captura Últimos 60 Segundos</title>
 </head>
 <body>
-    <h1>Gravar Últimos 30 Segundos</h1>
+    <h1>Gravar Últimos 30 Segundos(1.3)</h1>
     <video id="camera" autoplay playsinline></video>
-    <button onclick="gravar()">Gravar Últimos 30s(1.2)</button>
+    <button onclick="gravar()">Gravar Últimos 30s</button>
     <video id="videoPlayer" controls></video>
 
     <script>
@@ -19,6 +19,7 @@
         let isRecording = false;
         let maxDuration = 60; // Mantém os últimos 60 segundos gravados
         let frameInterval = 1000; // 1 segundo entre cada novo frame
+        let secondsRecorded = 0; // Contador de segundos gravados
 
         async function iniciarCaptura() {
             try {
@@ -50,6 +51,17 @@
                 if (recordedChunks.length > maxDuration) {
                     // Exclui o primeiro quadro quando alcançar 60 segundos
                     recordedChunks.shift();
+                }
+
+                // Atualiza o contador de segundos gravados
+                secondsRecorded++;
+
+                // Exibe o contador de segundos no console
+                console.log(`Segundos Gravados: ${secondsRecorded}`);
+
+                // Exibe a quantidade de tempo gravado no console
+                if (secondsRecorded >= 30) {
+                    console.log("Você pode gravar os últimos 30 segundos!");
                 }
             }, frameInterval);
         }

@@ -1,5 +1,3 @@
-<script src="whammy.js"></script>
-
 <!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -47,7 +45,7 @@
                     }
 
                     ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-                    videoFrames.push(canvas.toDataURL("image/webp")); // Salva frame como imagem
+                    videoFrames.push(canvas.toDataURL("image/png")); // Corrigido: usando PNG
 
                     setTimeout(capturarFrame, 100); // Captura 10 frames por segundo (100ms)
                 }
@@ -107,7 +105,7 @@
     </script>
 
     <!-- Importa Whammy.js para converter imagens em vídeo -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/whammy/0.2/whammy.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/antimatter15/whammy/whammy.js"></script>
 
 </body>
 </html>

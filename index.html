@@ -21,6 +21,7 @@
         let frameInterval = 1000; // 1 segundo entre cada novo frame
         let startTime;
         let lastTimeChecked = Date.now(); // Última vez que verificamos os segundos gravados
+        let last30sVideoUrl = ''; // Variável global para armazenar a URL do Blob
 
         async function iniciarCaptura() {
             try {
@@ -75,13 +76,15 @@
                 // Seleciona os últimos 30 segundos gravados
                 const last30SecondsBlob = new Blob(recordedChunks.slice(recordedChunks.length - 30, recordedChunks.length), { type: "video/webm" });
 
+                // Cria o URL do Blob
+                last30sVideoUrl = URL.createObjectURL(last30SecondsBlob);
+
                 // Exibe o vídeo recortado
-                const videoUrl = URL.createObjectURL(last30SecondsBlob);
-                document.getElementById("videoPlayer").src = videoUrl;
+                document.getElementById("videoPlayer").src = last30sVideoUrl;
 
                 // Cria o link de download
                 const link = document.createElement("a");
-                link.href = videoUrl;
+                link.href = last30sVideoUrl;
                 link.download = `video_30s_${new Date().toISOString()}.webm`;
                 document.body.appendChild(link); // Adiciona o link ao DOM temporariamente
                 link.click(); // Clica para iniciar o download

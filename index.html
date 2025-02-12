@@ -12,64 +12,43 @@
     <button onclick="gravar()">Gravar Últimos 30s</button>
     <video id="videoPlayer" controls></video>
 
-    <canvas id="canvas" style="display: none;"></canvas>
-
     <script>
-        let videoFrames = [];
-        const maxFrames = 30 * 10; // 30 segundos * 10 FPS
-        let recording = false;
+        let mediaRecorder;
+        let recordedChunks = [];
+        let stream;
+        let videoElement = document.getElementById("camera");
 
         async function iniciarCaptura() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({
+                stream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: "environment" },
                     audio: false
                 });
-
-                const videoElement = document.getElementById("camera");
                 videoElement.srcObject = stream;
 
-                const canvas = document.getElementById("canvas");
-                const ctx = canvas.getContext("2d");
-                const videoTrack = stream.getVideoTracks()[0];
-                const settings = videoTrack.getSettings();
-
-                canvas.width = settings.width || 640;
-                canvas.height = settings.height || 480;
-
-                function capturarFrame() {
-                    if (!recording) return;
-
-                    if (videoFrames.length >= maxFrames) {
-                        videoFrames.shift(); // Remove os frames mais antigos
-                    }
-
-                    ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-                    let frame = canvas.toDataURL("image/png"); // Garante que é um DataURI válido
-                    videoFrames.push(frame);
-
-                    setTimeout(capturarFrame, 100); // Captura 10 frames por segundo (100ms)
-                }
-
-                recording = true;
-                capturarFrame();
-
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = handleDataAvailable;
+                mediaRecorder.onstop = handleStop;
+                
+                mediaRecorder.start();
+                console.log("Gravando...");
             } catch (error) {
                 console.error("Erro ao acessar a câmera:", error);
                 alert("Erro ao acessar a câmera. Verifique as permissões.");
             }
         }
 
-        async function gravar() {
-            if (videoFrames.length === 0) {
-                alert("Ainda não há 30 segundos gravados!");
-                return;
-            }
+        function handleDataAvailable(event) {
+            recordedChunks.push(event.data);
+        }
 
-            console.log("Iniciando a criação do vídeo...");
-            const videoBlob = await criarVideo(videoFrames);
-            const videoUrl = URL.createObjectURL(videoBlob);
+        function handleStop() {
+            const blob = new Blob(recordedChunks, { type: "video/webm" });
+            const videoUrl = URL.createObjectURL(blob);
             document.getElementById("videoPlayer").src = videoUrl;
+
+            // Limpa os dados gravados para o próximo ciclo
+            recordedChunks = [];
 
             const link = document.createElement("a");
             link.href = videoUrl;
@@ -77,41 +56,13 @@
             link.click();
         }
 
-        async function criarVideo(frames) {
-            const encoder = new Whammy.Video(10); // 10 FPS
-            let frameCount = 0;
-
-            while (frameCount < frames.length) {
-                const img = new Image();
-                img.src = frames[frameCount];
-                await new Promise(resolve => {
-                    img.onload = () => {
-                        const canvas = document.createElement("canvas");
-                        const ctx = canvas.getContext("2d");
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        ctx.drawImage(img, 0, 0);
-
-                        encoder.add(canvas); // Adiciona o frame ao Whammy
-                        frameCount++;
-                        resolve();
-                    };
-                });
-            }
-
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    const output = encoder.compile(); // Cria o vídeo sem callback
-                    resolve(output);
-                }, 100);
-            });
+        function gravar() {
+            // Para o gravador e cria o vídeo com os últimos 30 segundos gravados
+            mediaRecorder.stop();
         }
 
+        // Inicializa a captura assim que o site carregar
         iniciarCaptura();
     </script>
-
-    <!-- Importa Whammy.js para converter imagens em vídeo -->
-    <script src="https://cdn.jsdelivr.net/gh/antimatter15/whammy/whammy.js"></script>
-
 </body>
 </html>

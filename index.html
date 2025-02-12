@@ -77,36 +77,41 @@
             link.click();
         }
 
-        async function criarVideo(frames) {
-            return new Promise((resolve) => {
-                const encoder = new Whammy.Video(10); // 10 FPS
-                let frameCount = 0;
+       async function criarVideo(frames) {
+    return new Promise((resolve, reject) => {
+        const encoder = new Whammy.Video(10); // 10 FPS
+        let frameCount = 0;
 
-                function addFrame() {
-                    if (frameCount >= frames.length) {
-                        console.log("Finalizando vídeo...");
-                        resolve(encoder.compile());
-                        return;
-                    }
+        function addFrame() {
+            if (frameCount >= frames.length) {
+                console.log("Finalizando vídeo...");
+                encoder.compile((output) => {
+                    resolve(output); // Chama a função resolve corretamente
+                });
+                return;
+            }
 
-                    const img = new Image();
-                    img.src = frames[frameCount];
-                    img.onload = () => {
-                        const canvas = document.createElement("canvas");
-                        const ctx = canvas.getContext("2d");
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        ctx.drawImage(img, 0, 0);
-                        
-                        encoder.add(canvas); // Agora adicionamos o Canvas diretamente
-                        frameCount++;
-                        setTimeout(addFrame, 10); // Pequeno atraso para processar os frames corretamente
-                    };
-                }
+            const img = new Image();
+            img.src = frames[frameCount];
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                const ctx = canvas.getContext("2d");
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
 
-                addFrame();
-            });
+                encoder.add(canvas); // Adiciona ao Whammy corretamente
+                frameCount++;
+                setTimeout(addFrame, 10); // Pequeno atraso para evitar sobrecarga
+            };
+
+            img.onerror = reject;
         }
+
+        addFrame();
+    });
+}
+
 
         iniciarCaptura();
     </script>

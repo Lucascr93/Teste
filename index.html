@@ -16,7 +16,7 @@
 
     <script>
         let videoFrames = [];
-        const maxFrames = 30 * 10; // 30 segundos * 10 frames por segundo
+        const maxFrames = 30 * 10; // 30 segundos * 10 FPS
         let recording = false;
 
         async function iniciarCaptura() {
@@ -34,11 +34,12 @@
                 const videoTrack = stream.getVideoTracks()[0];
                 const settings = videoTrack.getSettings();
 
-                // Ajusta o tamanho do canvas para o tamanho do vídeo
                 canvas.width = settings.width || 640;
                 canvas.height = settings.height || 480;
 
                 function capturarFrame() {
+                    if (!recording) return;
+                    
                     if (videoFrames.length >= maxFrames) {
                         videoFrames.shift(); // Remove os frames mais antigos
                     }
@@ -46,9 +47,7 @@
                     ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
                     videoFrames.push(canvas.toDataURL("image/webp")); // Salva frame como imagem
 
-                    if (recording) {
-                        requestAnimationFrame(capturarFrame);
-                    }
+                    setTimeout(capturarFrame, 100); // Captura 10 frames por segundo (100ms)
                 }
 
                 recording = true;
@@ -66,7 +65,7 @@
                 return;
             }
 
-            // Converte os frames em um vídeo usando Whammy.js
+            console.log("Iniciando a criação do vídeo...");
             const blob = await criarVideo(videoFrames);
             const url = URL.createObjectURL(blob);
             document.getElementById("videoPlayer").src = url;
@@ -80,15 +79,25 @@
         async function criarVideo(frames) {
             return new Promise((resolve) => {
                 const encoder = new Whammy.Video(10); // 10 FPS
-                frames.forEach(frame => {
-                    const img = new Image();
-                    img.src = frame;
-                    img.onload = () => encoder.add(img);
-                });
+                let frameCount = 0;
 
-                setTimeout(() => {
-                    resolve(encoder.compile());
-                }, 1000);
+                function addFrame() {
+                    if (frameCount >= frames.length) {
+                        console.log("Finalizando vídeo...");
+                        resolve(encoder.compile());
+                        return;
+                    }
+
+                    const img = new Image();
+                    img.src = frames[frameCount];
+                    img.onload = () => {
+                        encoder.add(img);
+                        frameCount++;
+                        setTimeout(addFrame, 10); // Pequeno atraso para processar os frames corretamente
+                    };
+                }
+
+                addFrame();
             });
         }
 

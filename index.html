@@ -6,7 +6,7 @@
     <title>Captura Últimos 60 Segundos</title>
 </head>
 <body>
-    <h1>Gravar Últimos 30 Segundos(1.4)</h1>
+    <h1>Gravar Últimos 30 Segundos(1.5)</h1>
     <video id="camera" autoplay playsinline></video>
     <button onclick="gravar()">Gravar Últimos 30s</button>
     <video id="videoPlayer" controls></video>
@@ -19,7 +19,8 @@
         let isRecording = false;
         let maxDuration = 60; // Mantém os últimos 60 segundos gravados
         let frameInterval = 1000; // 1 segundo entre cada novo frame
-        let secondsRecorded = 0; // Contador de segundos gravados
+        let startTime;
+        let lastTimeChecked = Date.now(); // Última vez que verificamos os segundos gravados
 
         async function iniciarCaptura() {
             try {
@@ -43,36 +44,32 @@
             mediaRecorder = new MediaRecorder(stream);
             mediaRecorder.ondataavailable = handleDataAvailable;
             mediaRecorder.start();
+            startTime = Date.now(); // Armazena o tempo de início da gravação
             isRecording = true;
             console.log("Gravando...");
 
             // Mantém a gravação contínua para capturar os últimos 60 segundos
             setInterval(() => {
+                const currentTime = Date.now();
+                const elapsedTime = (currentTime - startTime) / 1000; // Tempo passado em segundos
+                console.log(`Segundos Gravados: ${Math.floor(elapsedTime)}`);
+
                 if (recordedChunks.length > maxDuration) {
                     // Exclui o primeiro quadro quando alcançar 60 segundos
                     recordedChunks.shift();
                 }
 
-                // Atualiza o contador de segundos gravados
-                secondsRecorded++;
-
-                // Exibe o contador de segundos no console
-                console.log(`Segundos Gravados: ${secondsRecorded}`);
-
-                // Exibe a quantidade de tempo gravado no console
-                if (secondsRecorded >= 30) {
+                if (elapsedTime >= 30) {
                     console.log("Você pode gravar os últimos 30 segundos!");
                 }
             }, frameInterval);
         }
 
         function gravar() {
-            // Verifica se temos pelo menos 30 segundos de gravação em "chunks"
-            const durationInSeconds = recordedChunks.reduce((acc, chunk) => acc + (chunk.size / 1000), 0); // Aproximação do tempo gravado
+            const currentTime = Date.now();
+            const elapsedTime = (currentTime - startTime) / 1000; // Tempo total gravado em segundos
 
-            console.log("Duração calculada (em segundos):", durationInSeconds);
-
-            if (durationInSeconds >= 30) {
+            if (elapsedTime >= 30) {
                 console.log("Capturando últimos 30 segundos...");
 
                 // Seleciona os últimos 30 segundos gravados

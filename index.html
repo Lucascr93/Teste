@@ -45,7 +45,8 @@
                     }
 
                     ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-                    videoFrames.push(canvas.toDataURL("image/png")); // Corrigido: usando PNG
+                    let frame = canvas.toDataURL("image/png"); // Garante que é um DataURI válido
+                    videoFrames.push(frame);
 
                     setTimeout(capturarFrame, 100); // Captura 10 frames por segundo (100ms)
                 }
@@ -91,7 +92,13 @@
                     const img = new Image();
                     img.src = frames[frameCount];
                     img.onload = () => {
-                        encoder.add(img);
+                        const canvas = document.createElement("canvas");
+                        const ctx = canvas.getContext("2d");
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+                        
+                        encoder.add(canvas); // Agora adicionamos o Canvas diretamente
                         frameCount++;
                         setTimeout(addFrame, 10); // Pequeno atraso para processar os frames corretamente
                     };

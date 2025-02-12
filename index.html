@@ -6,7 +6,7 @@
     <title>Captura Últimos 60 Segundos</title>
 </head>
 <body>
-    <h1>Gravar Últimos 30 Segundos(1.3)</h1>
+    <h1>Gravar Últimos 30 Segundos(1.4)</h1>
     <video id="camera" autoplay playsinline></video>
     <button onclick="gravar()">Gravar Últimos 30s</button>
     <video id="videoPlayer" controls></video>
@@ -68,7 +68,9 @@
 
         function gravar() {
             // Verifica se temos pelo menos 30 segundos de gravação em "chunks"
-            const durationInSeconds = recordedChunks.length * (frameInterval / 1000); // Converte o número de chunks para tempo em segundos
+            const durationInSeconds = recordedChunks.reduce((acc, chunk) => acc + (chunk.size / 1000), 0); // Aproximação do tempo gravado
+
+            console.log("Duração calculada (em segundos):", durationInSeconds);
 
             if (durationInSeconds >= 30) {
                 console.log("Capturando últimos 30 segundos...");

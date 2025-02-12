@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Captura de Últimos 30 Segundos</title>
+    <title>Captura Últimos 60 Segundos</title>
 </head>
 <body>
-    <h1>Capturar Últimos 30 Segundos</h1>
+    <h1>Gravar Últimos 60 Segundos</h1>
     <video id="camera" autoplay playsinline></video>
     <button onclick="gravar()">Gravar Últimos 30s</button>
     <video id="videoPlayer" controls></video>
@@ -17,8 +17,9 @@
         let stream;
         let videoElement = document.getElementById("camera");
         let isRecording = false;
-        let startTime;
-        let videoDuration;
+        let maxDuration = 60; // Mantém os últimos 60 segundos gravados
+        let frameInterval = 1000; // 1 segundo entre cada novo frame
+        let frameTimestamp = 0;
 
         async function iniciarCaptura() {
             try {
@@ -29,7 +30,7 @@
                 });
                 videoElement.srcObject = stream;
 
-                // Inicia a gravação de 24 horas
+                // Inicia a gravação
                 startRecording();
             } catch (error) {
                 console.error("Erro ao acessar a câmera:", error);
@@ -39,51 +40,49 @@
 
         function startRecording() {
             recordedChunks = []; // Limpar qualquer dado gravado anterior
-            startTime = Date.now(); // Marca o tempo de início da gravação
-
-            // Iniciar a gravação
             mediaRecorder = new MediaRecorder(stream);
             mediaRecorder.ondataavailable = handleDataAvailable;
-            mediaRecorder.onstop = handleStop;
             mediaRecorder.start();
             isRecording = true;
             console.log("Gravando...");
+
+            // Configura o intervalo para armazenar o frame a cada segundo
+            setInterval(() => {
+                if (recordedChunks.length > maxDuration) {
+                    // Exclui o primeiro quadro quando alcançar 60 segundos
+                    recordedChunks.shift();
+                }
+            }, frameInterval);
         }
 
         function gravar() {
-            if (isRecording) {
+            if (recordedChunks.length >= maxDuration) {
                 // Quando o botão é pressionado, recorta os últimos 30 segundos
                 console.log("Capturando últimos 30 segundos...");
-                const currentTime = Date.now();
-                const timeDiff = currentTime - startTime;
-                
-                if (timeDiff >= 30000) {
-                    // Se o tempo de gravação for maior ou igual a 30 segundos, faz o recorte
-                    const startCapture = recordedChunks.slice(Math.max(recordedChunks.length - Math.floor(timeDiff / 1000), 0));
-                    const last30SecondsBlob = new Blob(startCapture, { type: "video/webm" });
 
-                    // Exibe o vídeo recortado
-                    const videoUrl = URL.createObjectURL(last30SecondsBlob);
-                    document.getElementById("videoPlayer").src = videoUrl;
+                // Seleciona os últimos 30 segundos gravados
+                const last30SecondsBlob = new Blob(recordedChunks.slice(recordedChunks.length - 30, recordedChunks.length), { type: "video/webm" });
 
-                    // Cria o link de download
-                    const link = document.createElement("a");
-                    link.href = videoUrl;
-                    link.download = `video_30s_${new Date().toISOString()}.webm`;
-                    link.click();
-                }
+                // Exibe o vídeo recortado
+                const videoUrl = URL.createObjectURL(last30SecondsBlob);
+                document.getElementById("videoPlayer").src = videoUrl;
+
+                // Cria o link de download
+                const link = document.createElement("a");
+                link.href = videoUrl;
+                link.download = `video_30s_${new Date().toISOString()}.webm`;
+                link.click();
             } else {
-                // Caso a gravação não tenha começado, inicia a gravação
-                startRecording();
+                console.log("Ainda não há 30 segundos gravados suficientes.");
             }
         }
 
         function handleDataAvailable(event) {
-            recordedChunks.push(event.data);
-        }
-
-        function handleStop() {
-            // Lidar com a parada da gravação, se necessário
+            // Adiciona os quadros gravados no array
+            const currentTime = Date.now();
+            if (event.data.size > 0) {
+                recordedChunks.push(event.data);
+            }
         }
 
         // Inicializa a captura quando a página é carregada

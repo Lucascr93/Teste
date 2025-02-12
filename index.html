@@ -6,7 +6,7 @@
     <title>Captura Últimos 60 Segundos</title>
 </head>
 <body>
-    <h1>Gravar Últimos 30 Segundos(1.5)</h1>
+    <h1>Gravar Últimos 30 Segundos(1.6)</h1>
     <video id="camera" autoplay playsinline></video>
     <button onclick="gravar()">Gravar Últimos 30s</button>
     <video id="videoPlayer" controls></video>
@@ -83,7 +83,9 @@
                 const link = document.createElement("a");
                 link.href = videoUrl;
                 link.download = `video_30s_${new Date().toISOString()}.webm`;
-                link.click();
+                document.body.appendChild(link); // Adiciona o link ao DOM temporariamente
+                link.click(); // Clica para iniciar o download
+                document.body.removeChild(link); // Remove o link após o clique
             } else {
                 console.log("Ainda não há 30 segundos gravados suficientes.");
                 alert("Ainda não há 30 segundos gravados. Aguarde mais alguns segundos.");

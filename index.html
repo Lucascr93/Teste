@@ -17,30 +17,35 @@
         let recordedChunks = [];
         const maxBufferSize = 30; // Buffer de 30 segundos
 
-        function iniciarGravacao() {
-            navigator.mediaDevices.getUserMedia({
-                video: { facingMode: { exact: "environment" } }, // Usa a câmera traseira
-                audio: false // Remove áudio
-            })
-            .then(stream => {
-                document.getElementById("camera").srcObject = stream;
+        async function iniciarGravacao() {
+            try {
+                // Solicita acesso à câmera traseira SEM ÁUDIO
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "environment" }, // Câmera traseira
+                    audio: false // Sem áudio
+                });
 
-                // Criar gravador de mídia sem áudio
+                // Exibe o vídeo da câmera na tela
+                const videoElement = document.getElementById("camera");
+                videoElement.srcObject = stream;
+
+                // Configuração do gravador
                 const options = { mimeType: "video/webm; codecs=vp8" };
                 mediaRecorder = new MediaRecorder(stream, options);
 
                 mediaRecorder.ondataavailable = event => {
                     if (event.data.size > 0) {
                         recordedChunks.push(event.data);
-                        if (recordedChunks.length > maxBufferSize) recordedChunks.shift(); // Mantém os últimos 30 segundos
+                        if (recordedChunks.length > maxBufferSize) recordedChunks.shift(); // Mantém 30s
                     }
                 };
 
-                mediaRecorder.start(1000); // Grava em segmentos de 1 segundo
-            })
-            .catch(error => {
+                mediaRecorder.start(1000); // Grava segmentos de 1 segundo
+
+            } catch (error) {
                 console.error("Erro ao acessar a câmera:", error);
-            });
+                alert("Erro ao acessar a câmera. Verifique as permissões.");
+            }
         }
 
         function gravar() {

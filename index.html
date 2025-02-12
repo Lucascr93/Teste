@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Capturar Últimos 30 Segundos</title>
+    <title>Captura de Últimos 30 Segundos</title>
 </head>
 <body>
     <h1>Capturar Últimos 30 Segundos</h1>
-
     <video id="camera" autoplay playsinline></video>
     <button onclick="gravar()">Gravar Últimos 30s</button>
     <video id="videoPlayer" controls></video>
@@ -18,18 +17,19 @@
         let stream;
         let videoElement = document.getElementById("camera");
         let isRecording = false;
-        let recordedBlob;
-        let timer;
-        
+        let startTime;
+        let videoDuration;
+
         async function iniciarCaptura() {
             try {
+                // Solicita acesso à câmera
                 stream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: "environment" },
                     audio: false
                 });
                 videoElement.srcObject = stream;
 
-                // Começar a gravação assim que a página for carregada
+                // Inicia a gravação de 24 horas
                 startRecording();
             } catch (error) {
                 console.error("Erro ao acessar a câmera:", error);
@@ -38,35 +38,42 @@
         }
 
         function startRecording() {
-            recordedChunks = []; // Limpar dados gravados de gravações anteriores
+            recordedChunks = []; // Limpar qualquer dado gravado anterior
+            startTime = Date.now(); // Marca o tempo de início da gravação
 
-            // Iniciar a gravação de 30 segundos de cada vez
+            // Iniciar a gravação
             mediaRecorder = new MediaRecorder(stream);
             mediaRecorder.ondataavailable = handleDataAvailable;
             mediaRecorder.onstop = handleStop;
-
-            // Começar a gravar assim que a página for carregada
             mediaRecorder.start();
             isRecording = true;
             console.log("Gravando...");
-
-            // Resetar o timer para gravar 30 segundos e reiniciar
-            if (timer) clearInterval(timer);
-            timer = setInterval(() => {
-                if (isRecording) {
-                    mediaRecorder.stop(); // Para a gravação
-                }
-            }, 30000); // Gravação a cada 30 segundos
         }
 
         function gravar() {
             if (isRecording) {
-                // Se já estiver gravando, parar a gravação atual e salvar
-                mediaRecorder.stop();
-                isRecording = false;
-                console.log("Gravação parada.");
+                // Quando o botão é pressionado, recorta os últimos 30 segundos
+                console.log("Capturando últimos 30 segundos...");
+                const currentTime = Date.now();
+                const timeDiff = currentTime - startTime;
+                
+                if (timeDiff >= 30000) {
+                    // Se o tempo de gravação for maior ou igual a 30 segundos, faz o recorte
+                    const startCapture = recordedChunks.slice(Math.max(recordedChunks.length - Math.floor(timeDiff / 1000), 0));
+                    const last30SecondsBlob = new Blob(startCapture, { type: "video/webm" });
+
+                    // Exibe o vídeo recortado
+                    const videoUrl = URL.createObjectURL(last30SecondsBlob);
+                    document.getElementById("videoPlayer").src = videoUrl;
+
+                    // Cria o link de download
+                    const link = document.createElement("a");
+                    link.href = videoUrl;
+                    link.download = `video_30s_${new Date().toISOString()}.webm`;
+                    link.click();
+                }
             } else {
-                // Se não estiver gravando, iniciar a gravação
+                // Caso a gravação não tenha começado, inicia a gravação
                 startRecording();
             }
         }
@@ -76,19 +83,10 @@
         }
 
         function handleStop() {
-            const blob = new Blob(recordedChunks, { type: "video/webm" });
-            recordedBlob = blob;
-            const videoUrl = URL.createObjectURL(blob);
-            document.getElementById("videoPlayer").src = videoUrl;
-
-            // Cria o link de download
-            const link = document.createElement("a");
-            link.href = videoUrl;
-            link.download = "video_30s.webm";
-            link.click();
+            // Lidar com a parada da gravação, se necessário
         }
 
-        // Inicializa a captura assim que o site carregar
+        // Inicializa a captura quando a página é carregada
         iniciarCaptura();
     </script>
 </body>

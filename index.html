@@ -1,111 +1,86 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Captura Últimos 60 Segundos</title>
+  <meta charset="UTF-8">
+  <title>Gravar Últimos 30s da Câmera IP</title>
 </head>
 <body>
-    <h1>Gravar Últimos 30 Segundos(1.7)</h1>
-    <video id="camera" autoplay playsinline></video>
-    <button onclick="gravar()">Gravar Últimos 30s</button>
-    <video id="videoPlayer" controls></video>
+  <h1>Visualização + Gravação (30s) - Câmera IP Hikvision</h1>
 
-    <script>
-        let mediaRecorder;
-        let recordedChunks = [];
-        let stream;
-        let videoElement = document.getElementById("camera");
-        let isRecording = false;
-        let maxDuration = 60; // Mantém os últimos 60 segundos gravados
-        let frameInterval = 1000; // 1 segundo entre cada novo frame
-        let startTime;
-        let lastTimeChecked = Date.now(); // Última vez que verificamos os segundos gravados
-        let last30sVideoUrl = ''; // Variável global para armazenar a URL do Blob
+  <!-- Stream MJPEG da câmera -->
+  <img id="camera" src="http://177.71.89.137:8092/Streaming/channels/1/httppreview"
+       width="640" height="480" crossorigin="anonymous" style="display: none;">
 
-        async function iniciarCaptura() {
-            try {
-                // Solicita acesso à câmera
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: "environment" },
-                    audio: false
-                });
-                videoElement.srcObject = stream;
+  <!-- Canvas para desenhar o vídeo -->
+  <canvas id="canvas" width="640" height="480" style="border: 1px solid black;"></canvas>
 
-                // Inicia a gravação
-                startRecording();
-            } catch (error) {
-                console.error("Erro ao acessar a câmera:", error);
-                alert("Erro ao acessar a câmera. Verifique as permissões.");
-            }
+  <!-- Botão de gravação -->
+  <br><br>
+  <button onclick="gravar()">Gravar Últimos 30 segundos</button>
+  <br><br>
+  <video id="videoPlayer" controls width="640"></video>
+
+  <script>
+    const img = document.getElementById("camera");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const chunks = [];
+    let mediaRecorder;
+    let canvasStream;
+    let startTime;
+
+    // Desenha continuamente o stream da câmera no canvas
+    function loopDesenho() {
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      requestAnimationFrame(loopDesenho);
+    }
+
+    // Começa a gravação do canvas
+    function iniciarGravacaoCanvas() {
+      canvasStream = canvas.captureStream(30); // 30 FPS
+      mediaRecorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm' });
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunks.push({ time: Date.now(), data: e.data });
         }
 
-        function startRecording() {
-            recordedChunks = []; // Limpar qualquer dado gravado anterior
-            mediaRecorder = new MediaRecorder(stream);
-            mediaRecorder.ondataavailable = handleDataAvailable;
-            mediaRecorder.start();
-            startTime = Date.now(); // Armazena o tempo de início da gravação
-            isRecording = true;
-            console.log("Gravando...");
-
-            // Mantém a gravação contínua para capturar os últimos 60 segundos
-            setInterval(() => {
-                const currentTime = Date.now();
-                const elapsedTime = (currentTime - startTime) / 1000; // Tempo passado em segundos
-                console.log(`Segundos Gravados: ${Math.floor(elapsedTime)}`);
-
-                if (recordedChunks.length > maxDuration) {
-                    // Exclui o primeiro quadro quando alcançar 60 segundos
-                    recordedChunks.shift();
-                }
-
-                if (elapsedTime >= 30) {
-                    console.log("Você pode gravar os últimos 30 segundos!");
-                }
-            }, frameInterval);
+        // Remove blobs com mais de 30s
+        const limite = Date.now() - 30000;
+        while (chunks.length > 0 && chunks[0].time < limite) {
+          chunks.shift();
         }
+      };
 
-        function gravar() {
-            const currentTime = Date.now();
-            const elapsedTime = (currentTime - startTime) / 1000; // Tempo total gravado em segundos
+      mediaRecorder.start(1000); // Captura em chunks de 1s
+      startTime = Date.now();
+    }
 
-            if (elapsedTime >= 30) {
-                console.log("Capturando últimos 30 segundos...");
+    // Ao clicar: gera o vídeo com os últimos 30s
+    function gravar() {
+      if (chunks.length === 0) {
+        alert("Ainda não há dados suficientes para gerar 30s.");
+        return;
+      }
 
-                // Seleciona os últimos 30 segundos gravados
-                const last30SecondsBlob = new Blob(recordedChunks.slice(recordedChunks.length - 30, recordedChunks.length), { type: "video/webm" });
+      const videoBlob = new Blob(chunks.map(c => c.data), { type: 'video/webm' });
+      const url = URL.createObjectURL(videoBlob);
+      document.getElementById("videoPlayer").src = url;
 
-                // Cria o URL do Blob
-                last30sVideoUrl = URL.createObjectURL(last30SecondsBlob);
+      // Download automático
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `camera30s_${new Date().toISOString()}.webm`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
 
-                // Exibe o vídeo recortado
-                document.getElementById("videoPlayer").src = last30sVideoUrl;
-
-                // Cria o link de download
-                const link = document.createElement("a");
-                link.href = last30sVideoUrl;
-                link.download = `video_30s_${new Date().toISOString()}.webm`;
-                document.body.appendChild(link); // Adiciona o link ao DOM temporariamente
-                link.click(); // Clica para iniciar o download
-                document.body.removeChild(link); // Remove o link após o clique
-
-                // IMPORTANTE: Não use URL.revokeObjectURL() aqui para manter o URL ativo
-            } else {
-                console.log("Ainda não há 30 segundos gravados suficientes.");
-                alert("Ainda não há 30 segundos gravados. Aguarde mais alguns segundos.");
-            }
-        }
-
-        function handleDataAvailable(event) {
-            // Adiciona os quadros gravados no array
-            if (event.data.size > 0) {
-                recordedChunks.push(event.data);
-            }
-        }
-
-        // Inicializa a captura quando a página é carregada
-        iniciarCaptura();
-    </script>
+    // Inicializa
+    img.onload = () => {
+      loopDesenho();
+      iniciarGravacaoCanvas();
+    };
+  </script>
 </body>
 </html>
